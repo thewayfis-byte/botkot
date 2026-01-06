@@ -1,99 +1,44 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <title>Чат #<%= orderId %> - Wayfis</title>
-  <link rel="stylesheet" href="/css/style.css">
-  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
-  <style>
-    .chat-container {
-      height: 500px;
-      overflow-y: auto;
-      padding: 16px;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      background-color: #f9fafb;
-    }
+<% 
+  title = 'Чат #' + orderId + ' - Wayfis';
+  layout('layout');
+%>
 
-    .message {
-      margin-bottom: 12px;
-      padding: 8px 12px;
-      border-radius: 8px;
-      max-width: 70%;
-    }
-
-    .user-message {
-      background-color: #e0e7ff;
-      margin-right: auto;
-    }
-
-    .admin-message {
-      background-color: #f0fdf4;
-      margin-left: auto;
-    }
-  </style>
-</head>
-<body>
-  <div class="sidebar">
-    <div class="sidebar-logo">Wayfis</div>
-    <ul class="sidebar-menu">
-      <li><a href="/dashboard">📊 Дашборд</a></li>
-      <li><a href="/keys">🔑 Ключи</a></li>
-      <li><a href="/support" class="active">💬 Поддержка</a></li>
-      <li><a href="/logout">🚪 Выйти</a></li>
-    </ul>
+<div class="card">
+  <div class="chat-container" id="chatMessages">
+    <% messages.forEach(msg => { %>
+      <div class="message <%= msg.sender === 'admin' ? 'admin-message' : 'user-message' %>">
+        <div><%= msg.text %></div>
+        <small style="color: var(--text-secondary); font-size: 0.75rem;">
+          <%= new Date(msg.created_at).toLocaleTimeString() %>
+        </small>
+      </div>
+    <% }); %>
   </div>
 
-  <div class="main-content">
-    <div class="header">
-      <h1 class="header-title">Чат поддержки — Заказ #<%= orderId %></h1>
-      <div class="header-nav">
-        <a href="/dashboard">Дашборд</a>
-        <a href="/keys">Ключи</a>
-        <a href="/support" class="active">Поддержка</a>
-        <a href="/logout">Выйти</a>
-      </div>
-    </div>
+  <form action="/chat/<%= orderId %>/send" method="POST" style="margin-top: 16px; display: flex; gap: 8px;">
+    <input type="text" name="message" class="form-input" placeholder="Напишите сообщение..." required>
+    <button type="submit" class="btn btn-primary">Отправить</button>
+  </form>
 
-    <div class="card">
-      <div class="chat-container" id="chatMessages">
-        <% messages.forEach(msg => { %>
-          <div class="message <%= msg.sender === 'admin' ? 'admin-message' : 'user-message' %>">
-            <div><%= msg.text %></div>
-            <small style="color: var(--text-secondary); font-size: 0.75rem;">
-              <%= new Date(msg.created_at).toLocaleTimeString() %>
-            </small>
-          </div>
-        <% }); %>
-      </div>
+  <form action="/chat/<%= orderId %>/close" method="POST" style="margin-top: 16px;">
+    <button type="submit" class="btn btn-danger">Закрыть заказ</button>
+  </form>
+</div>
 
-      <form action="/chat/<%= orderId %>/send" method="POST" style="margin-top: 16px; display: flex; gap: 8px;">
-        <input type="text" name="message" class="form-input" placeholder="Напишите сообщение..." required>
-        <button type="submit" class="btn btn-primary">Отправить</button>
-      </form>
+<script>
+  const socket = io();
+  const orderId = '<%= orderId %>';
+  socket.emit('join-chat', orderId);
 
-      <form action="/chat/<%= orderId %>/close" method="POST" style="margin-top: 16px;">
-        <button type="submit" class="btn btn-danger">Закрыть заказ</button>
-      </form>
-    </div>
-  </div>
-
-  <script>
-    const socket = io();
-    const orderId = '<%= orderId %>';
-    socket.emit('join-chat', orderId);
-
-    socket.on('new-message', (msg) => {
-      const messagesDiv = document.getElementById('chatMessages');
-      const div = document.createElement('div');
-      div.className = `message ${msg.sender === 'admin' ? 'admin-message' : 'user-message'}`;
-      div.innerHTML = `
-        <div>${msg.text}</div>
-        <small style="color: var(--text-secondary); font-size: 0.75rem;">${msg.time}</small>
-      `;
-      messagesDiv.appendChild(div);
-      messagesDiv.scrollTop = messagesDiv.scrollHeight;
-    });
-  </script>
-</body>
-</html>
+  socket.on('new-message', (msg) => {
+    const messagesDiv = document.getElementById('chatMessages');
+    const div = document.createElement('div');
+    div.className = `message ${msg.sender === 'admin' ? 'admin-message' : 'user-message'}`;
+    div.innerHTML = `
+      <div>${msg.text}</div>
+      <small style="color: var(--text-secondary); font-size: 0.75rem;">${msg.time}</small>
+    `;
+    messagesDiv.appendChild(div);
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+  });
+</script>

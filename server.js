@@ -5,6 +5,7 @@ const http = require('http');
 const { Server } = require('socket.io');
 const { Telegraf, Markup } = require('telegraf');
 const path = require('path');
+const helmet = require('helmet');
 
 const db = require('./database');
 const models = require('./models');
@@ -15,6 +16,9 @@ const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: "*" } });
 const bot = new Telegraf(process.env.BOT_TOKEN);
 
+// Security middleware
+app.use(helmet());
+
 // Делаем io и bot доступными в маршрутах
 app.locals.io = io;
 app.locals.bot = bot;
@@ -24,6 +28,12 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
+
+// Middleware to make req available in views
+app.use((req, res, next) => {
+  res.locals.req = req;
+  next();
+});
 
 app.use(session({
   secret: process.env.SESSION_SECRET || 'secret123',
@@ -178,6 +188,12 @@ bot.on('text', async (ctx) => {
   await ctx.reply('✅ Сообщение отправлено админу!');
 });
 
+// Middleware to make req available in views
+app.use((req, res, next) => {
+  res.locals.req = req;
+  next();
+});
+
 // ======= ВЕБ-АДМИНКА =======
 app.get('/', (req, res) => {
   res.redirect('/login');
@@ -290,8 +306,12 @@ app.get('/logout', (req, res) => {
 });
 
 // Запуск
-bot.launch({ dropPendingUpdates: true });
+bot.launch({ dropPendingUpdates: true }).catch(err => {
+  console.log('⚠️ Бот не запущен (неправильный токен или тестовый режим)');
+  console.log('Ошибка бота:', err.message);
+});
+
 server.listen(3000, () => {
   console.log('🚀 Админка: http://localhost:3000');
-  console.log('🤖 Бот запущен');
+  console.log('🤖 Бот запущен (или будет запущен при корректных данных)');
 });
