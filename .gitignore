@@ -2,29 +2,44 @@
 # Dependencies
 node_modules/
 
-# Environment variables
-.env
-
 # Logs
 *.log
-server.log
 
-# Build artifacts (if any)
-build/
-dist/
-target/
+# Environment
+.env
+.env.local
+*.env.*
 
-# IDE files
+# Editor/IDE
 .vscode/
 .idea/
+*.swp
+*.swo
+*.tmp
 
-# Python (if present)
+# Build artifacts
+dist/
+build/
+*.o
+*.obj
+*.out
+
+# Python
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
 
-# System files
+# Coverage
+coverage/
+htmlcov/
+.coverage
+
+# Testing
+.pytest_cache/
+.mypy_cache/
+
+# System
 .DS_Store
 Thumbs.db
 
@@ -51,5 +66,4 @@ Thumbs.db
 *.tar.bz2
 *.tar.xz
 *.tar.zst
-
 ```

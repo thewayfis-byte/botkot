@@ -10,6 +10,7 @@
     "ejs": "^3.1.10",
     "ejs-locals": "^1.0.2",
     "express": "^4.22.1",
+    "express-ejs-layouts": "^2.5.1",
     "express-session": "^1.18.2",
     "helmet": "^7.2.0",
     "socket.io": "^4.8.3",

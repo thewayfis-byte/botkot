@@ -6,6 +6,7 @@ const { Server } = require('socket.io');
 const { Telegraf, Markup } = require('telegraf');
 const path = require('path');
 const helmet = require('helmet');
+const expressLayouts = require('express-ejs-layouts');
 
 const db = require('./database');
 const models = require('./models');
@@ -28,6 +29,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
+app.use(expressLayouts);
 
 // Middleware to make req available in views
 app.use((req, res, next) => {
