@@ -241,12 +241,45 @@ function requireAuth(req, res, next) {
 }
 
 app.get('/dashboard', requireAuth, (req, res) => {
-  const stats = {
+  // Получаем статистику за всё время
+  const totalStats = {
     orders: db.prepare('SELECT COUNT(*) as c FROM orders').get().c,
     openChats: db.prepare('SELECT COUNT(*) as c FROM orders WHERE support_status = ?').get('open').c,
-    keys: db.prepare('SELECT COUNT(*) as c FROM key_pool WHERE is_used = 0').get().c
+    keys: db.prepare('SELECT COUNT(*) as c FROM key_pool WHERE is_used = 0').get().c,
+    totalRevenue: db.prepare(`
+      SELECT COALESCE(SUM(p.price), 0) as total 
+      FROM orders o
+      JOIN products p ON o.product_id = p.id
+      WHERE o.status = 'paid'
+    `).get().total
   };
-  
+
+  // Получаем статистику за сегодня
+  const today = new Date().toISOString().split('T')[0];
+  const todayStats = {
+    orders: db.prepare('SELECT COUNT(*) as c FROM orders WHERE DATE(created_at) = ?').get(today).c,
+    revenue: db.prepare(`
+      SELECT COALESCE(SUM(p.price), 0) as total 
+      FROM orders o
+      JOIN products p ON o.product_id = p.id
+      WHERE o.status = 'paid' AND DATE(o.created_at) = ?
+    `).get(today).total
+  };
+
+  // Получаем статистику за месяц
+  const monthAgo = new Date();
+  monthAgo.setMonth(monthAgo.getMonth() - 1);
+  const monthAgoStr = monthAgo.toISOString().split('T')[0];
+  const monthStats = {
+    orders: db.prepare('SELECT COUNT(*) as c FROM orders WHERE DATE(created_at) >= ?').get(monthAgoStr).c,
+    revenue: db.prepare(`
+      SELECT COALESCE(SUM(p.price), 0) as total 
+      FROM orders o
+      JOIN products p ON o.product_id = p.id
+      WHERE o.status = 'paid' AND DATE(o.created_at) >= ?
+    `).get(monthAgoStr).total
+  };
+
   res.send(`
     <!DOCTYPE html>
     <html>
@@ -260,6 +293,7 @@ app.get('/dashboard', requireAuth, (req, res) => {
         .stat-card { border-left: 4px solid #007bff; }
         .sidebar { min-height: 100vh; }
         .main-content { padding: 2rem 0; }
+        .stat-period { background-color: #f8f9fa; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1rem; }
       </style>
     </head>
     <body>
@@ -299,6 +333,37 @@ app.get('/dashboard', requireAuth, (req, res) => {
               <h1 class="h2">📊 Панель управления</h1>
             </div>
 
+            <div class="row mb-4">
+              <div class="col-xl-3 col-md-6 mb-4">
+                <div class="stat-period">
+                  <h5>Сегодня</h5>
+                  <p>Заказов: <strong>${todayStats.orders}</strong></p>
+                  <p>Доход: <strong>${todayStats.revenue} ₽</strong></p>
+                </div>
+              </div>
+              <div class="col-xl-3 col-md-6 mb-4">
+                <div class="stat-period">
+                  <h5>Месяц</h5>
+                  <p>Заказов: <strong>${monthStats.orders}</strong></p>
+                  <p>Доход: <strong>${monthStats.revenue} ₽</strong></p>
+                </div>
+              </div>
+              <div class="col-xl-3 col-md-6 mb-4">
+                <div class="stat-period">
+                  <h5>Всё время</h5>
+                  <p>Заказов: <strong>${totalStats.orders}</strong></p>
+                  <p>Доход: <strong>${totalStats.totalRevenue} ₽</strong></p>
+                </div>
+              </div>
+              <div class="col-xl-3 col-md-6 mb-4">
+                <div class="stat-period">
+                  <h5>Прочее</h5>
+                  <p>Открытых чатов: <strong>${totalStats.openChats}</strong></p>
+                  <p>Свободных ключей: <strong>${totalStats.keys}</strong></p>
+                </div>
+              </div>
+            </div>
+
             <div class="row">
               <div class="col-xl-4 col-md-6 mb-4">
                 <div class="card stat-card border-left-primary shadow h-100 py-2">
@@ -307,7 +372,7 @@ app.get('/dashboard', requireAuth, (req, res) => {
                       <div class="col mr-2">
                         <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
                           Заказов всего</div>
-                        <div class="h5 mb-0 font-weight-bold text-gray-800">${stats.orders}</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">${totalStats.orders}</div>
                       </div>
                       <div class="col-auto">
                         <i class="fas fa-shopping-cart fa-2x text-gray-300"></i>
@@ -324,7 +389,7 @@ app.get('/dashboard', requireAuth, (req, res) => {
                       <div class="col mr-2">
                         <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
                           Открытых чатов</div>
-                        <div class="h5 mb-0 font-weight-bold text-gray-800">${stats.openChats}</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">${totalStats.openChats}</div>
                       </div>
                       <div class="col-auto">
                         <i class="fas fa-comments fa-2x text-gray-300"></i>
@@ -341,7 +406,7 @@ app.get('/dashboard', requireAuth, (req, res) => {
                       <div class="col mr-2">
                         <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
                           Свободных ключей</div>
-                        <div class="h5 mb-0 font-weight-bold text-gray-800">${stats.keys}</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">${totalStats.keys}</div>
                       </div>
                       <div class="col-auto">
                         <i class="fas fa-key fa-2x text-gray-300"></i>
@@ -361,7 +426,8 @@ app.get('/dashboard', requireAuth, (req, res) => {
                   <div class="card-body">
                     <p>Добро пожаловать в панель управления Wayfis!</p>
                     <ul>
-                      <li>📊 Статистика по заказам, ключам и чатам поддержки</li>
+                      <li>📊 Статистика по заказам, доходам и чатам поддержки</li>
+                      <li>📈 Доход за сутки, месяц и всё время</li>
                       <li>🔐 Безопасный доступ с аутентификацией</li>
                       <li>💬 Управление чатами поддержки клиентов</li>
                       <li>🔑 Управление ключами для продуктов</li>

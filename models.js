@@ -65,6 +65,12 @@ function getChatHistory(orderId) {
     .all(orderId);
 }
 
+// Получить все заказы пользователя
+function getUserOrders(userId) {
+  return db.prepare('SELECT * FROM orders WHERE user_id = ? ORDER BY created_at DESC')
+    .all(userId);
+}
+
 // ЭКСПОРТ ВСЕХ ФУНКЦИЙ
 module.exports = {
   getActiveProducts,
@@ -78,5 +84,6 @@ module.exports = {
   openSupportChat,
   closeSupportChat,
   saveMessage,
-  getChatHistory
+  getChatHistory,
+  getUserOrders
 };
