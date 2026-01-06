@@ -1,37 +1,34 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html>
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Wayfis Admin</title>
-  <link href="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta19/dist/css/tabler.min.css" rel="stylesheet">
+  <title><%= title || 'Wayfis Admin' %></title>
   <link rel="stylesheet" href="/css/style.css">
   <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 </head>
 <body>
-  <div class="page">
-    <aside class="navbar navbar-vertical navbar-expand-lg">
-      <div class="container-fluid">
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar-menu">
-          <span class="navbar-toggler-icon"></span>
-        </button>
-        <h1 class="navbar-brand">Wayfis</h1>
-        <div class="collapse navbar-collapse" id="navbar-menu">
-          <ul class="navbar-nav pt-lg-3">
-            <li class="nav-item"><a class="nav-link" href="/admin">📊 Дашборд</a></li>
-            <li class="nav-item"><a class="nav-link" href="/admin/keys">🔑 Ключи</a></li>
-            <li class="nav-item"><a class="nav-link" href="/admin/chat/1" style="display:none;">💬 Чаты</a></li>
-          </ul>
-        </div>
-        <a href="/admin/logout" class="btn">Выйти</a>
-      </div>
-    </aside>
-    <div class="page-wrapper">
-      <div class="container-fluid">
-        <%- body %>
+  <div class="sidebar">
+    <div class="sidebar-logo">Wayfis</div>
+    <ul class="sidebar-menu">
+      <li><a href="/dashboard" class="<%= (req.url === '/dashboard' || req.url === '/') ? 'active' : '' %>">📊 Дашборд</a></li>
+      <li><a href="/keys" class="<%= req.url === '/keys' ? 'active' : '' %>">🔑 Ключи</a></li>
+      <li><a href="/support" class="<%= req.url === '/support' ? 'active' : '' %>">💬 Поддержка</a></li>
+      <li><a href="/logout">🚪 Выйти</a></li>
+    </ul>
+  </div>
+
+  <div class="main-content">
+    <div class="header">
+      <h1 class="header-title"><%= title || 'Wayfis Admin' %></h1>
+      <div class="header-nav">
+        <a href="/dashboard" class="<%= (req.url === '/dashboard' || req.url === '/') ? 'active' : '' %>">Дашборд</a>
+        <a href="/keys" class="<%= req.url === '/keys' ? 'active' : '' %>">Ключи</a>
+        <a href="/support" class="<%= req.url === '/support' ? 'active' : '' %>">Поддержка</a>
+        <a href="/logout">Выйти</a>
       </div>
     </div>
+
+    <%- body %>
   </div>
-  <script src="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta19/dist/js/tabler.min.js"></script>
 </body>
 </html>

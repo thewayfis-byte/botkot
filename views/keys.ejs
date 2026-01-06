@@ -1,96 +1,69 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <title>Ключи - Wayfis</title>
-  <link rel="stylesheet" href="/css/style.css">
-</head>
-<body>
-  <div class="sidebar">
-    <div class="sidebar-logo">Wayfis</div>
-    <ul class="sidebar-menu">
-      <li><a href="/dashboard">📊 Дашборд</a></li>
-      <li><a href="/keys" class="active">🔑 Ключи</a></li>
-      <li><a href="/support">💬 Поддержка</a></li>
-      <li><a href="/logout">🚪 Выйти</a></li>
-    </ul>
+<% 
+  title = 'Ключи - Wayfis';
+  layout('layout');
+%>
+
+<div class="card">
+  <div class="card-header">
+    <h2 class="card-title">Управление ключами</h2>
+    <button onclick="document.getElementById('addModal').classList.remove('hidden')" class="btn btn-primary">+ Добавить</button>
   </div>
 
-  <div class="main-content">
-    <div class="header">
-      <h1 class="header-title">Управление ключами</h1>
-      <div class="header-nav">
-        <a href="/dashboard">Дашборд</a>
-        <a href="/keys" class="active">Ключи</a>
-        <a href="/support">Поддержка</a>
-        <a href="/logout">Выйти</a>
-      </div>
-    </div>
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Ключ</th>
+        <th>Товар</th>
+        <th>Статус</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% keys.forEach(key => { %>
+        <tr>
+          <td><code><%= key.key_value %></code></td>
+          <td><%= key.product_name %></td>
+          <td>
+            <span class="status <%= key.is_used ? 'status-error' : 'status-success' %>">
+              <%= key.is_used ? 'Использован' : 'Доступен' %>
+            </span>
+          </td>
+        </tr>
+      <% }); %>
+    </tbody>
+  </table>
+</div>
 
-    <div class="card">
-      <div class="card-header">
-        <h2 class="card-title">Все ключи</h2>
-        <button onclick="document.getElementById('addModal').classList.remove('hidden')" class="btn btn-primary">+ Добавить</button>
-      </div>
-
-      <table class="table">
-        <thead>
-          <tr>
-            <th>Ключ</th>
-            <th>Товар</th>
-            <th>Статус</th>
-          </tr>
-        </thead>
-        <tbody>
-          <% keys.forEach(key => { %>
-            <tr>
-              <td><code><%= key.key_value %></code></td>
-              <td><%= key.product_name %></td>
-              <td>
-                <span class="status <%= key.is_used ? 'status-error' : 'status-success' %>">
-                  <%= key.is_used ? 'Использован' : 'Доступен' %>
-                </span>
-              </td>
-            </tr>
+<!-- Модальное окно добавления -->
+<div id="addModal" class="hidden" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center;">
+  <div class="card" style="width: 500px; max-width: 90vw;">
+    <h3 class="card-title">Добавить ключ</h3>
+    <form method="POST" action="/keys">
+      <div class="form-group">
+        <label class="form-label">Товар</label>
+        <select name="product_id" class="form-select" required>
+          <% products.forEach(p => { %>
+            <option value="<%= p.id %>"><%= p.name %></option>
           <% }); %>
-        </tbody>
-      </table>
-    </div>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Ключ</label>
+        <input name="key_value" class="form-input" placeholder="XXXXX-XXXXX-XXXXX" required>
+      </div>
+      <div class="card-actions">
+        <button type="button" onclick="document.getElementById('addModal').classList.add('hidden')" class="btn btn-outline">Отмена</button>
+        <button type="submit" class="btn btn-primary">Добавить</button>
+      </div>
+    </form>
   </div>
+</div>
 
-  <!-- Модальное окно добавления -->
-  <div id="addModal" class="hidden" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center;">
-    <div class="card" style="width: 500px; max-width: 90vw;">
-      <h3 class="card-title">Добавить ключ</h3>
-      <form method="POST" action="/keys">
-        <div class="form-group">
-          <label class="form-label">Товар</label>
-          <select name="product_id" class="form-select" required>
-            <% products.forEach(p => { %>
-              <option value="<%= p.id %>"><%= p.name %></option>
-            <% }); %>
-          </select>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Ключ</label>
-          <input name="key_value" class="form-input" placeholder="XXXXX-XXXXX-XXXXX" required>
-        </div>
-        <div class="card-actions">
-          <button type="button" onclick="document.getElementById('addModal').classList.add('hidden')" class="btn btn-outline">Отмена</button>
-          <button type="submit" class="btn btn-primary">Добавить</button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <script>
-    // Скрытие модального окна при клике вне его
-    document.addEventListener('click', (e) => {
-      const modal = document.getElementById('addModal');
-      if (e.target === modal) {
-        modal.classList.add('hidden');
-      }
-    });
-  </script>
-</body>
-</html>
+<script>
+  // Скрытие модального окна при клике вне его
+  document.addEventListener('click', (e) => {
+    const modal = document.getElementById('addModal');
+    if (e.target === modal) {
+      modal.classList.add('hidden');
+    }
+  });
+</script>
