@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Поддержка - Wayfis</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="sidebar">
+    <div class="sidebar-logo">Wayfis</div>
+    <ul class="sidebar-menu">
+      <li><a href="/dashboard">📊 Дашборд</a></li>
+      <li><a href="/keys">🔑 Ключи</a></li>
+      <li><a href="/support" class="active">💬 Поддержка</a></li>
+      <li><a href="/logout">🚪 Выйти</a></li>
+    </ul>
+  </div>
+
+  <div class="main-content">
+    <div class="header">
+      <h1 class="header-title">Поддержка</h1>
+      <div class="header-nav">
+        <a href="/dashboard">Дашборд</a>
+        <a href="/keys">Ключи</a>
+        <a href="/support" class="active">Поддержка</a>
+        <a href="/logout">Выйти</a>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <h2 class="card-title">Активные чаты</h2>
+      </div>
+
+      <% if (chats.length === 0) { %>
+        <p style="text-align: center; color: var(--text-secondary); padding: 24px;">Нет активных чатов</p>
+      <% } else { %>
+        <table class="table">
+          <thead>
+            <tr>
+              <th>ID заказа</th>
+              <th>Товар</th>
+              <th>Пользователь</th>
+              <th>Действия</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% chats.forEach(chat => { %>
+              <tr>
+                <td>#<%= chat.id %></td>
+                <td><%= chat.product_name %></td>
+                <td><%= chat.user_id %></td>
+                <td>
+                  <a href="/chat/<%= chat.id %>" class="btn btn-primary">Открыть чат</a>
+                </td>
+              </tr>
+            <% }); %>
+          </tbody>
+        </table>
+      <% } %>
+    </div>
+  </div>
+</body>
+</html>

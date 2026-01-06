@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Дашборд - Wayfis</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="sidebar">
+    <div class="sidebar-logo">Wayfis</div>
+    <ul class="sidebar-menu">
+      <li><a href="/dashboard" class="active">📊 Дашборд</a></li>
+      <li><a href="/keys">🔑 Ключи</a></li>
+      <li><a href="/support">💬 Поддержка</a></li>
+      <li><a href="/logout">🚪 Выйти</a></li>
+    </ul>
+  </div>
+
+  <div class="main-content">
+    <div class="header">
+      <h1 class="header-title">Дашборд</h1>
+      <div class="header-nav">
+        <a href="/dashboard" class="active">Дашборд</a>
+        <a href="/keys">Ключи</a>
+        <a href="/support">Поддержка</a>
+        <a href="/logout">Выйти</a>
+      </div>
+    </div>
+
+    <div class="grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 24px;">
+      <div class="card">
+        <h3>Всего заказов</h3>
+        <p style="font-size: 2rem; font-weight: bold; color: var(--primary);"><%= stats.orders %></p>
+      </div>
+      <div class="card">
+        <h3>Активных чатов</h3>
+        <p style="font-size: 2rem; font-weight: bold; color: var(--warning);"><%= stats.openChats %></p>
+      </div>
+      <div class="card">
+        <h3>Доступных ключей</h3>
+        <p style="font-size: 2rem; font-weight: bold; color: var(--success);"><%= stats.keys %></p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
