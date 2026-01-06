@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Wayfis Admin</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="container">
+    <div style="max-width: 400px; margin: 100px auto;">
+      <h1 class="card-title">Вход в админку</h1>
+      <% if (locals.error) { %>
+        <div style="color: var(--error); margin-bottom: 16px;"><%= error %></div>
+      <% } %>
+      <form method="POST">
+        <div class="form-group">
+          <label class="form-label">Логин</label>
+          <input name="username" class="form-input" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Пароль</label>
+          <input type="password" name="password" class="form-input" required>
+        </div>
+        <button type="submit" class="btn btn-primary">Войти</button>
+      </form>
+    </div>
+  </div>
+</body>
+</html>

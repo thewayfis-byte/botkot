@@ -1,0 +1,19 @@
+<% 
+  title = 'Дашборд - Wayfis';
+  layout('layout');
+%>
+
+<div class="grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 24px;">
+  <div class="card">
+    <h3>Всего заказов</h3>
+    <p style="font-size: 2rem; font-weight: bold; color: var(--primary);"><%= stats.orders %></p>
+  </div>
+  <div class="card">
+    <h3>Активных чатов</h3>
+    <p style="font-size: 2rem; font-weight: bold; color: var(--warning);"><%= stats.openChats %></p>
+  </div>
+  <div class="card">
+    <h3>Доступных ключей</h3>
+    <p style="font-size: 2rem; font-weight: bold; color: var(--success);"><%= stats.keys %></p>
+  </div>
+</div>

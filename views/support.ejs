@@ -1,0 +1,37 @@
+<% 
+  title = 'Поддержка - Wayfis';
+  layout('layout');
+%>
+
+<div class="card">
+  <div class="card-header">
+    <h2 class="card-title">Активные чаты</h2>
+  </div>
+
+  <% if (chats.length === 0) { %>
+    <p style="text-align: center; color: var(--text-secondary); padding: 24px;">Нет активных чатов</p>
+  <% } else { %>
+    <table class="table">
+      <thead>
+        <tr>
+          <th>ID заказа</th>
+          <th>Товар</th>
+          <th>Пользователь</th>
+          <th>Действия</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% chats.forEach(chat => { %>
+          <tr>
+            <td>#<%= chat.id %></td>
+            <td><%= chat.product_name %></td>
+            <td><%= chat.user_id %></td>
+            <td>
+              <a href="/chat/<%= chat.id %>" class="btn btn-primary">Открыть чат</a>
+            </td>
+          </tr>
+        <% }); %>
+      </tbody>
+    </table>
+  <% } %>
+</div>
