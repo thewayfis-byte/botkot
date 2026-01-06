@@ -6,7 +6,7 @@ const { Server } = require('socket.io');
 const { Telegraf, Markup } = require('telegraf');
 const path = require('path');
 const helmet = require('helmet');
-
+const expressLayouts = require('express-ejs-layouts');
 
 const db = require('./database');
 const models = require('./models');
@@ -27,7 +27,15 @@ app.locals.bot = bot;
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
+app.set('view engine', 'ejs');
+app.set('views', path.join(__dirname, 'views'));
+app.use(expressLayouts);
 
+// Middleware to make req available in views
+app.use((req, res, next) => {
+  res.locals.req = req;
+  next();
+});
 
 app.use(session({
   secret: process.env.SESSION_SECRET || 'secret123',
@@ -182,57 +190,25 @@ bot.on('text', async (ctx) => {
   await ctx.reply('✅ Сообщение отправлено админу!');
 });
 
+// Middleware to make req available in views
+app.use((req, res, next) => {
+  res.locals.req = req;
+  next();
+});
 
+// ======= ВЕБ-АДМИНКА =======
 app.get('/', (req, res) => {
   res.redirect('/login');
 });
 
-app.get('/login', (req, res) => {
-  const error = req.query.error || '';
-  res.send(`
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <title>Вход в админку - Wayfis</title>
-      <meta charset="utf-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1">
-      <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-      <style>
-        body { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; }
-        .login-card { background: white; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
-      </style>
-    </head>
-    <body>
-      <div class="container d-flex align-items-center justify-content-center min-vh-100">
-        <div class="col-md-6 col-lg-5">
-          <div class="login-card p-5">
-            <h2 class="text-center mb-4">🔐 Вход в админку</h2>
-            ${error ? `<div class="alert alert-danger">${error}</div>` : ''}
-            <form method="POST" action="/login">
-              <div class="mb-3">
-                <label class="form-label">Логин</label>
-                <input type="text" name="username" class="form-control" required>
-              </div>
-              <div class="mb-3">
-                <label class="form-label">Пароль</label>
-                <input type="password" name="password" class="form-control" required>
-              </div>
-              <button type="submit" class="btn btn-primary w-100">Войти</button>
-            </form>
-          </div>
-        </div>
-      </div>
-    </body>
-    </html>
-  `);
-});
+app.get('/login', (req, res) => res.render('login'));
 app.post('/login', (req, res) => {
   if (req.body.username === process.env.ADMIN_LOGIN &&
       req.body.password === process.env.ADMIN_PASSWORD) {
     req.session.auth = true;
     return res.redirect('/dashboard');
   }
-  res.redirect('/login?error=Неверный логин или пароль');
+  res.render('login', { error: 'Неверный логин или пароль' });
 });
 
 function requireAuth(req, res, next) {
@@ -246,136 +222,7 @@ app.get('/dashboard', requireAuth, (req, res) => {
     openChats: db.prepare('SELECT COUNT(*) as c FROM orders WHERE support_status = ?').get('open').c,
     keys: db.prepare('SELECT COUNT(*) as c FROM key_pool WHERE is_used = 0').get().c
   };
-  
-  res.send(`
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <title>Дашборд - Wayfis</title>
-      <meta charset="utf-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1">
-      <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-      <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-      <style>
-        .stat-card { border-left: 4px solid #007bff; }
-        .sidebar { min-height: 100vh; }
-        .main-content { padding: 2rem 0; }
-      </style>
-    </head>
-    <body>
-      <div class="container-fluid">
-        <div class="row">
-          <!-- Sidebar -->
-          <nav class="col-md-3 col-lg-2 d-md-block sidebar collapse">
-            <div class="position-sticky pt-3">
-              <ul class="nav flex-column">
-                <li class="nav-item">
-                  <a class="nav-link active" href="/dashboard">
-                    <i class="fas fa-tachometer-alt"></i> Дашборд
-                  </a>
-                </li>
-                <li class="nav-item">
-                  <a class="nav-link" href="/keys">
-                    <i class="fas fa-key"></i> Ключи
-                  </a>
-                </li>
-                <li class="nav-item">
-                  <a class="nav-link" href="/support">
-                    <i class="fas fa-headset"></i> Поддержка
-                  </a>
-                </li>
-                <li class="nav-item">
-                  <a class="nav-link" href="/logout">
-                    <i class="fas fa-sign-out-alt"></i> Выйти
-                  </a>
-                </li>
-              </ul>
-            </div>
-          </nav>
-
-          <!-- Main Content -->
-          <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
-            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-              <h1 class="h2">📊 Панель управления</h1>
-            </div>
-
-            <div class="row">
-              <div class="col-xl-4 col-md-6 mb-4">
-                <div class="card stat-card border-left-primary shadow h-100 py-2">
-                  <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                      <div class="col mr-2">
-                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
-                          Заказов всего</div>
-                        <div class="h5 mb-0 font-weight-bold text-gray-800">${stats.orders}</div>
-                      </div>
-                      <div class="col-auto">
-                        <i class="fas fa-shopping-cart fa-2x text-gray-300"></i>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div class="col-xl-4 col-md-6 mb-4">
-                <div class="card stat-card border-left-success shadow h-100 py-2">
-                  <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                      <div class="col mr-2">
-                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
-                          Открытых чатов</div>
-                        <div class="h5 mb-0 font-weight-bold text-gray-800">${stats.openChats}</div>
-                      </div>
-                      <div class="col-auto">
-                        <i class="fas fa-comments fa-2x text-gray-300"></i>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div class="col-xl-4 col-md-6 mb-4">
-                <div class="card stat-card border-left-info shadow h-100 py-2">
-                  <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                      <div class="col mr-2">
-                        <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
-                          Свободных ключей</div>
-                        <div class="h5 mb-0 font-weight-bold text-gray-800">${stats.keys}</div>
-                      </div>
-                      <div class="col-auto">
-                        <i class="fas fa-key fa-2x text-gray-300"></i>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div class="row">
-              <div class="col-12">
-                <div class="card shadow mb-4">
-                  <div class="card-header py-3">
-                    <h6 class="m-0 font-weight-bold text-primary">Информация</h6>
-                  </div>
-                  <div class="card-body">
-                    <p>Добро пожаловать в панель управления Wayfis!</p>
-                    <ul>
-                      <li>📊 Статистика по заказам, ключам и чатам поддержки</li>
-                      <li>🔐 Безопасный доступ с аутентификацией</li>
-                      <li>💬 Управление чатами поддержки клиентов</li>
-                      <li>🔑 Управление ключами для продуктов</li>
-                    </ul>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </main>
-        </div>
-      </div>
-    </body>
-    </html>
-  `);
+  res.render('dashboard', { stats });
 });
 
 app.get('/keys', requireAuth, (req, res) => {
@@ -386,134 +233,7 @@ app.get('/keys', requireAuth, (req, res) => {
     ORDER BY k.id DESC
   `).all();
   const products = models.getActiveProducts();
-  
-  res.send(`
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <title>Ключи - Wayfis</title>
-      <meta charset="utf-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1">
-      <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-      <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-      <style>
-        .sidebar { min-height: 100vh; }
-        .key-status { padding: 0.25rem 0.5rem; border-radius: 0.25rem; font-size: 0.875rem; }
-        .status-used { background-color: #f8d7da; color: #721c24; }
-        .status-free { background-color: #d4edda; color: #155724; }
-      </style>
-    </head>
-    <body>
-      <div class="container-fluid">
-        <div class="row">
-          <!-- Sidebar -->
-          <nav class="col-md-3 col-lg-2 d-md-block sidebar collapse">
-            <div class="position-sticky pt-3">
-              <ul class="nav flex-column">
-                <li class="nav-item">
-                  <a class="nav-link" href="/dashboard">
-                    <i class="fas fa-tachometer-alt"></i> Дашборд
-                  </a>
-                </li>
-                <li class="nav-item">
-                  <a class="nav-link active" href="/keys">
-                    <i class="fas fa-key"></i> Ключи
-                  </a>
-                </li>
-                <li class="nav-item">
-                  <a class="nav-link" href="/support">
-                    <i class="fas fa-headset"></i> Поддержка
-                  </a>
-                </li>
-                <li class="nav-item">
-                  <a class="nav-link" href="/logout">
-                    <i class="fas fa-sign-out-alt"></i> Выйти
-                  </a>
-                </li>
-              </ul>
-            </div>
-          </nav>
-
-          <!-- Main Content -->
-          <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
-            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-              <h1 class="h2">🔑 Управление ключами</h1>
-            </div>
-
-            <div class="row mb-4">
-              <div class="col-12">
-                <div class="card shadow">
-                  <div class="card-header">
-                    <h5 class="mb-0">Добавить ключ</h5>
-                  </div>
-                  <div class="card-body">
-                    <form method="POST" action="/keys">
-                      <div class="row">
-                        <div class="col-md-6">
-                          <label class="form-label">Продукт</label>
-                          <select name="product_id" class="form-select" required>
-                            ${products.map(p => `<option value="${p.id}">${p.name}</option>`).join('')}
-                          </select>
-                        </div>
-                        <div class="col-md-6">
-                          <label class="form-label">Ключ</label>
-                          <input type="text" name="key_value" class="form-control" placeholder="Введите ключ" required>
-                        </div>
-                      </div>
-                      <div class="mt-3">
-                        <button type="submit" class="btn btn-primary">Добавить ключ</button>
-                      </div>
-                    </form>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div class="row">
-              <div class="col-12">
-                <div class="card shadow">
-                  <div class="card-header">
-                    <h5 class="mb-0">Список ключей</h5>
-                  </div>
-                  <div class="card-body">
-                    <div class="table-responsive">
-                      <table class="table table-striped">
-                        <thead>
-                          <tr>
-                            <th>ID</th>
-                            <th>Ключ</th>
-                            <th>Продукт</th>
-                            <th>Статус</th>
-                            <th>Дата создания</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          ${keys.map(k => `
-                            <tr>
-                              <td>${k.id}</td>
-                              <td><code>${k.key_value}</code></td>
-                              <td>${k.product_name}</td>
-                              <td>
-                                <span class="key-status ${k.is_used ? 'status-used' : 'status-free'}">
-                                  ${k.is_used ? 'Использован' : 'Свободен'}
-                                </span>
-                              </td>
-                              <td>${new Date(k.created_at).toLocaleString()}</td>
-                            </tr>
-                          `).join('')}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </main>
-        </div>
-      </div>
-    </body>
-    </html>
-  `);
+  res.render('keys', { keys, products });
 });
 
 app.post('/keys', requireAuth, (req, res) => {
@@ -530,109 +250,7 @@ app.get('/support', requireAuth, (req, res) => {
     WHERE o.support_status = 'open'
     ORDER BY o.created_at DESC
   `).all();
-  
-  res.send(`
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <title>Поддержка - Wayfis</title>
-      <meta charset="utf-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1">
-      <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-      <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-      <style>
-        .sidebar { min-height: 100vh; }
-        .chat-status { padding: 0.25rem 0.5rem; border-radius: 0.25rem; font-size: 0.875rem; }
-        .status-open { background-color: #d4edda; color: #155724; }
-        .status-closed { background-color: #f8d7da; color: #721c24; }
-      </style>
-    </head>
-    <body>
-      <div class="container-fluid">
-        <div class="row">
-          <!-- Sidebar -->
-          <nav class="col-md-3 col-lg-2 d-md-block sidebar collapse">
-            <div class="position-sticky pt-3">
-              <ul class="nav flex-column">
-                <li class="nav-item">
-                  <a class="nav-link" href="/dashboard">
-                    <i class="fas fa-tachometer-alt"></i> Дашборд
-                  </a>
-                </li>
-                <li class="nav-item">
-                  <a class="nav-link" href="/keys">
-                    <i class="fas fa-key"></i> Ключи
-                  </a>
-                </li>
-                <li class="nav-item">
-                  <a class="nav-link active" href="/support">
-                    <i class="fas fa-headset"></i> Поддержка
-                  </a>
-                </li>
-                <li class="nav-item">
-                  <a class="nav-link" href="/logout">
-                    <i class="fas fa-sign-out-alt"></i> Выйти
-                  </a>
-                </li>
-              </ul>
-            </div>
-          </nav>
-
-          <!-- Main Content -->
-          <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
-            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-              <h1 class="h2">💬 Чаты поддержки</h1>
-            </div>
-
-            <div class="row">
-              <div class="col-12">
-                <div class="card shadow">
-                  <div class="card-body">
-                    <div class="table-responsive">
-                      <table class="table table-striped">
-                        <thead>
-                          <tr>
-                            <th>ID заказа</th>
-                            <th>Продукт</th>
-                            <th>Telegram ID</th>
-                            <th>Дата создания</th>
-                            <th>Статус</th>
-                            <th>Действия</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          ${chats.map(chat => `
-                            <tr>
-                              <td>${chat.id}</td>
-                              <td>${chat.product_name}</td>
-                              <td>${chat.user_id}</td>
-                              <td>${new Date(chat.created_at).toLocaleString()}</td>
-                              <td>
-                                <span class="chat-status status-open">
-                                  Открыт
-                                </span>
-                              </td>
-                              <td>
-                                <a href="/chat/${chat.id}" class="btn btn-sm btn-primary">
-                                  <i class="fas fa-comments"></i> Перейти
-                                </a>
-                              </td>
-                            </tr>
-                          `).join('')}
-                        </tbody>
-                      </table>
-                      ${chats.length === 0 ? '<p class="text-muted">Нет открытых чатов поддержки</p>' : ''}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </main>
-        </div>
-      </div>
-    </body>
-    </html>
-  `);
+  res.render('support', { chats });
 });
 
 app.get('/chat/:orderId', requireAuth, (req, res) => {
@@ -647,113 +265,7 @@ app.get('/chat/:orderId', requireAuth, (req, res) => {
   if (!chat) return res.redirect('/support');
 
   const messages = models.getChatHistory(orderId);
-  
-  res.send(`
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <title>Чат #${orderId} - Wayfis</title>
-      <meta charset="utf-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1">
-      <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-      <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-      <style>
-        .sidebar { min-height: 100vh; }
-        .chat-container { height: 600px; overflow-y: auto; }
-        .message { padding: 10px; margin: 5px 0; border-radius: 8px; max-width: 70%; }
-        .message-user { background-color: #e3f2fd; margin-left: auto; }
-        .message-admin { background-color: #f5f5f5; margin-right: auto; }
-        .message-time { font-size: 0.75rem; color: #6c757d; display: block; margin-top: 5px; }
-      </style>
-    </head>
-    <body>
-      <div class="container-fluid">
-        <div class="row">
-          <!-- Sidebar -->
-          <nav class="col-md-3 col-lg-2 d-md-block sidebar collapse">
-            <div class="position-sticky pt-3">
-              <ul class="nav flex-column">
-                <li class="nav-item">
-                  <a class="nav-link" href="/dashboard">
-                    <i class="fas fa-tachometer-alt"></i> Дашборд
-                  </a>
-                </li>
-                <li class="nav-item">
-                  <a class="nav-link" href="/keys">
-                    <i class="fas fa-key"></i> Ключи
-                  </a>
-                </li>
-                <li class="nav-item">
-                  <a class="nav-link active" href="/support">
-                    <i class="fas fa-headset"></i> Поддержка
-                  </a>
-                </li>
-                <li class="nav-item">
-                  <a class="nav-link" href="/logout">
-                    <i class="fas fa-sign-out-alt"></i> Выйти
-                  </a>
-                </li>
-              </ul>
-            </div>
-          </nav>
-
-          <!-- Main Content -->
-          <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
-            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-              <h1 class="h2">💬 Чат #${orderId}</h1>
-              <div>
-                <span class="badge bg-primary me-2">Заказ: ${chat.id}</span>
-                <span class="badge bg-info me-2">Продукт: ${chat.product_name}</span>
-                <span class="badge bg-success">Telegram: ${chat.user_id}</span>
-              </div>
-            </div>
-
-            <div class="row">
-              <div class="col-12">
-                <div class="card shadow">
-                  <div class="card-body">
-                    <div id="chat-container" class="chat-container p-3 mb-3 border rounded">
-                      ${messages.map(msg => `
-                        <div class="message ${msg.sender === 'user' ? 'message-user' : 'message-admin'}">
-                          <strong>${msg.sender === 'user' ? 'Пользователь' : 'Администратор'}:</strong>
-                          <div>${msg.text}</div>
-                          <span class="message-time">${new Date(msg.timestamp).toLocaleTimeString()}</span>
-                        </div>
-                      `).join('')}
-                    </div>
-                    
-                    <form method="POST" action="/chat/${orderId}/send" class="row">
-                      <div class="col-md-9">
-                        <input type="text" name="message" class="form-control" placeholder="Введите сообщение..." required>
-                      </div>
-                      <div class="col-md-3">
-                        <button type="submit" class="btn btn-primary w-100">Отправить</button>
-                      </div>
-                    </form>
-                    
-                    <div class="mt-3">
-                      <form method="POST" action="/chat/${orderId}/close" style="display: inline;">
-                        <button type="submit" class="btn btn-danger" onclick="return confirm('Закрыть чат?')">
-                          <i class="fas fa-times"></i> Закрыть чат
-                        </button>
-                      </form>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </main>
-        </div>
-        
-        <script>
-          // Автоматически прокручиваем чат вниз
-          const chatContainer = document.getElementById('chat-container');
-          chatContainer.scrollTop = chatContainer.scrollHeight;
-        </script>
-      </div>
-    </body>
-    </html>
-  `);
+  res.render('chat', { chat, messages, orderId });
 });
 
 app.post('/chat/:orderId/send', requireAuth, async (req, res) => {
