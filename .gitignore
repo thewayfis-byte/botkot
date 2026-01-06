@@ -1,34 +1,50 @@
 ```
-# Backup files
-*.backup
+# Dependencies
+node_modules/
 
-# Logs and temp files
-*.log
-*.tmp
-*.swp
-
-# Environment
+# Environment variables
 .env
 .env.local
 *.env.*
 
-# Editors
+# Logs
+*.log
+
+# Editor/IDE files
 .vscode/
 .idea/
-
-# Dependencies
-node_modules/
-.venv/
-venv/
-__pycache__/
-*.pyc
+*.swp
+*.swo
+*.tmp
 
 # Build artifacts
 dist/
 build/
 target/
 
+# Python cache (if Python files exist)
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Coverage reports
+coverage/
+htmlcov/
+*.coverage
+
 # OS generated files
 .DS_Store
 Thumbs.db
+
+# Package managers
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Testing
+.mypy_cache/
+.pytest_cache/
+.coverage
 ```

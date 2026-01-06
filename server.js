@@ -241,7 +241,11 @@ function requireAuth(req, res, next) {
 }
 
 app.get('/dashboard', requireAuth, (req, res) => {
-  const stats = models.getAdminStats();
+  const stats = {
+    orders: db.prepare('SELECT COUNT(*) as c FROM orders').get().c,
+    openChats: db.prepare('SELECT COUNT(*) as c FROM orders WHERE support_status = ?').get('open').c,
+    keys: db.prepare('SELECT COUNT(*) as c FROM key_pool WHERE is_used = 0').get().c
+  };
   
   res.send(`
     <!DOCTYPE html>
@@ -271,11 +275,6 @@ app.get('/dashboard', requireAuth, (req, res) => {
                   </a>
                 </li>
                 <li class="nav-item">
-                  <a class="nav-link" href="/stats">
-                    <i class="fas fa-chart-line"></i> Статистика
-                  </a>
-                </li>
-                <li class="nav-item">
                   <a class="nav-link" href="/keys">
                     <i class="fas fa-key"></i> Ключи
                   </a>
@@ -301,7 +300,7 @@ app.get('/dashboard', requireAuth, (req, res) => {
             </div>
 
             <div class="row">
-              <div class="col-xl-3 col-md-6 mb-4">
+              <div class="col-xl-4 col-md-6 mb-4">
                 <div class="card stat-card border-left-primary shadow h-100 py-2">
                   <div class="card-body">
                     <div class="row no-gutters align-items-center">
@@ -318,7 +317,7 @@ app.get('/dashboard', requireAuth, (req, res) => {
                 </div>
               </div>
 
-              <div class="col-xl-3 col-md-6 mb-4">
+              <div class="col-xl-4 col-md-6 mb-4">
                 <div class="card stat-card border-left-success shadow h-100 py-2">
                   <div class="card-body">
                     <div class="row no-gutters align-items-center">
@@ -335,7 +334,7 @@ app.get('/dashboard', requireAuth, (req, res) => {
                 </div>
               </div>
 
-              <div class="col-xl-3 col-md-6 mb-4">
+              <div class="col-xl-4 col-md-6 mb-4">
                 <div class="card stat-card border-left-info shadow h-100 py-2">
                   <div class="card-body">
                     <div class="row no-gutters align-items-center">
@@ -346,76 +345,6 @@ app.get('/dashboard', requireAuth, (req, res) => {
                       </div>
                       <div class="col-auto">
                         <i class="fas fa-key fa-2x text-gray-300"></i>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div class="col-xl-3 col-md-6 mb-4">
-                <div class="card stat-card border-left-warning shadow h-100 py-2">
-                  <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                      <div class="col mr-2">
-                        <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
-                          Пользователей</div>
-                        <div class="h5 mb-0 font-weight-bold text-gray-800">${stats.users}</div>
-                      </div>
-                      <div class="col-auto">
-                        <i class="fas fa-users fa-2x text-gray-300"></i>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div class="row">
-              <div class="col-xl-4 col-md-6 mb-4">
-                <div class="card stat-card border-left-danger shadow h-100 py-2">
-                  <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                      <div class="col mr-2">
-                        <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">
-                          Доход за всё время</div>
-                        <div class="h5 mb-0 font-weight-bold text-gray-800">${stats.totalIncome} ₽</div>
-                      </div>
-                      <div class="col-auto">
-                        <i class="fas fa-ruble-sign fa-2x text-gray-300"></i>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div class="col-xl-4 col-md-6 mb-4">
-                <div class="card stat-card border-left-success shadow h-100 py-2">
-                  <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                      <div class="col mr-2">
-                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
-                          Доход сегодня</div>
-                        <div class="h5 mb-0 font-weight-bold text-gray-800">${stats.todayIncome} ₽</div>
-                      </div>
-                      <div class="col-auto">
-                        <i class="fas fa-calendar-day fa-2x text-gray-300"></i>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div class="col-xl-4 col-md-6 mb-4">
-                <div class="card stat-card border-left-info shadow h-100 py-2">
-                  <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                      <div class="col mr-2">
-                        <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
-                          Доход за месяц</div>
-                        <div class="h5 mb-0 font-weight-bold text-gray-800">${stats.monthIncome} ₽</div>
-                      </div>
-                      <div class="col-auto">
-                        <i class="fas fa-calendar-alt fa-2x text-gray-300"></i>
                       </div>
                     </div>
                   </div>
@@ -433,7 +362,6 @@ app.get('/dashboard', requireAuth, (req, res) => {
                     <p>Добро пожаловать в панель управления Wayfis!</p>
                     <ul>
                       <li>📊 Статистика по заказам, ключам и чатам поддержки</li>
-                      <li>💰 Статистика доходов за разные периоды</li>
                       <li>🔐 Безопасный доступ с аутентификацией</li>
                       <li>💬 Управление чатами поддержки клиентов</li>
                       <li>🔑 Управление ключами для продуктов</li>
@@ -444,224 +372,6 @@ app.get('/dashboard', requireAuth, (req, res) => {
             </div>
           </main>
         </div>
-      </div>
-    </body>
-    </html>
-  `);
-});
-
-// Страница детальной статистики
-app.get('/stats', requireAuth, (req, res) => {
-  const stats = models.getAdminStats();
-  
-  res.send(`
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <title>Статистика - Wayfis</title>
-      <meta charset="utf-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1">
-      <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-      <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-      <style>
-        .stat-card { border-left: 4px solid #007bff; }
-        .sidebar { min-height: 100vh; }
-        .main-content { padding: 2rem 0; }
-        .period-selector { margin-bottom: 1.5rem; }
-      </style>
-    </head>
-    <body>
-      <div class="container-fluid">
-        <div class="row">
-          <!-- Sidebar -->
-          <nav class="col-md-3 col-lg-2 d-md-block sidebar collapse">
-            <div class="position-sticky pt-3">
-              <ul class="nav flex-column">
-                <li class="nav-item">
-                  <a class="nav-link" href="/dashboard">
-                    <i class="fas fa-tachometer-alt"></i> Дашборд
-                  </a>
-                </li>
-                <li class="nav-item">
-                  <a class="nav-link active" href="/stats">
-                    <i class="fas fa-chart-line"></i> Статистика
-                  </a>
-                </li>
-                <li class="nav-item">
-                  <a class="nav-link" href="/keys">
-                    <i class="fas fa-key"></i> Ключи
-                  </a>
-                </li>
-                <li class="nav-item">
-                  <a class="nav-link" href="/support">
-                    <i class="fas fa-headset"></i> Поддержка
-                  </a>
-                </li>
-                <li class="nav-item">
-                  <a class="nav-link" href="/logout">
-                    <i class="fas fa-sign-out-alt"></i> Выйти
-                  </a>
-                </li>
-              </ul>
-            </div>
-          </nav>
-
-          <!-- Main Content -->
-          <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
-            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-              <h1 class="h2">📈 Детальная статистика</h1>
-            </div>
-
-            <div class="row period-selector">
-              <div class="col-12">
-                <div class="card shadow">
-                  <div class="card-body">
-                    <h5 class="card-title"><i class="fas fa-filter"></i> Периоды</h5>
-                    <div class="btn-group" role="group">
-                      <button type="button" class="btn btn-outline-primary" onclick="loadPeriodStats('today')">Сегодня</button>
-                      <button type="button" class="btn btn-outline-primary" onclick="loadPeriodStats('week')">Неделя</button>
-                      <button type="button" class="btn btn-outline-primary" onclick="loadPeriodStats('month')">Месяц</button>
-                      <button type="button" class="btn btn-outline-primary" onclick="loadPeriodStats('year')">Год</button>
-                      <button type="button" class="btn btn-outline-primary" onclick="loadPeriodStats('all')">Все время</button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div class="row">
-              <div class="col-xl-4 col-md-6 mb-4">
-                <div class="card stat-card border-left-danger shadow h-100 py-2">
-                  <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                      <div class="col mr-2">
-                        <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">
-                          Общий доход</div>
-                        <div class="h5 mb-0 font-weight-bold text-gray-800">${stats.totalIncome} ₽</div>
-                      </div>
-                      <div class="col-auto">
-                        <i class="fas fa-ruble-sign fa-2x text-gray-300"></i>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div class="col-xl-4 col-md-6 mb-4">
-                <div class="card stat-card border-left-success shadow h-100 py-2">
-                  <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                      <div class="col mr-2">
-                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
-                          Доход сегодня</div>
-                        <div class="h5 mb-0 font-weight-bold text-gray-800">${stats.todayIncome} ₽</div>
-                      </div>
-                      <div class="col-auto">
-                        <i class="fas fa-calendar-day fa-2x text-gray-300"></i>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div class="col-xl-4 col-md-6 mb-4">
-                <div class="card stat-card border-left-info shadow h-100 py-2">
-                  <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                      <div class="col mr-2">
-                        <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
-                          Доход за месяц</div>
-                        <div class="h5 mb-0 font-weight-bold text-gray-800">${stats.monthIncome} ₽</div>
-                      </div>
-                      <div class="col-auto">
-                        <i class="fas fa-calendar-alt fa-2x text-gray-300"></i>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div class="row">
-              <div class="col-xl-4 col-md-6 mb-4">
-                <div class="card stat-card border-left-primary shadow h-100 py-2">
-                  <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                      <div class="col mr-2">
-                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
-                          Всего заказов</div>
-                        <div class="h5 mb-0 font-weight-bold text-gray-800">${stats.orders}</div>
-                      </div>
-                      <div class="col-auto">
-                        <i class="fas fa-shopping-cart fa-2x text-gray-300"></i>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div class="col-xl-4 col-md-6 mb-4">
-                <div class="card stat-card border-left-warning shadow h-100 py-2">
-                  <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                      <div class="col mr-2">
-                        <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
-                          Пользователей</div>
-                        <div class="h5 mb-0 font-weight-bold text-gray-800">${stats.users}</div>
-                      </div>
-                      <div class="col-auto">
-                        <i class="fas fa-users fa-2x text-gray-300"></i>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div class="col-xl-4 col-md-6 mb-4">
-                <div class="card stat-card border-left-secondary shadow h-100 py-2">
-                  <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                      <div class="col mr-2">
-                        <div class="text-xs font-weight-bold text-secondary text-uppercase mb-1">
-                          Средний чек</div>
-                        <div class="h5 mb-0 font-weight-bold text-gray-800">${stats.orders > 0 ? Math.round(stats.totalIncome / stats.orders) : 0} ₽</div>
-                      </div>
-                      <div class="col-auto">
-                        <i class="fas fa-receipt fa-2x text-gray-300"></i>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div class="row">
-              <div class="col-12">
-                <div class="card shadow mb-4">
-                  <div class="card-header py-3">
-                    <h6 class="m-0 font-weight-bold text-primary">Дополнительная информация</h6>
-                  </div>
-                  <div class="card-body">
-                    <p>Статистика обновляется в реальном времени на основе совершенных покупок.</p>
-                    <ul>
-                      <li>📈 Графики доходов по периодам</li>
-                      <li>📊 Детализация по типам товаров</li>
-                      <li>👥 Статистика пользователей</li>
-                      <li>🔔 Уведомления о важных событиях</li>
-                    </ul>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </main>
-        </div>
-        
-        <script>
-          function loadPeriodStats(period) {
-            // В реальном приложении здесь был бы AJAX-запрос для получения статистики за выбранный период
-            alert('Загрузка статистики за ' + period + ' (реализуется в полной версии)');
-          }
-        </script>
       </div>
     </body>
     </html>
@@ -1083,33 +793,6 @@ app.post('/chat/:orderId/close', requireAuth, (req, res) => {
 app.get('/logout', (req, res) => {
   req.session.destroy();
   res.redirect('/login');
-});
-
-// Маршрут для создания тикета в поддержку
-app.post('/api/tickets', (req, res) => {
-  const { name, email, telegram, category, priority, subject, message } = req.body;
-  
-  // В реальном приложении здесь будет сохранение тикета в базу данных
-  // и отправка уведомления в Telegram
-  
-  // Логика отправки уведомления администратору
-  const ticketInfo = `
-🎫 Новый тикет в поддержке!
----
-Имя: ${name}
-Email: ${email}
-Telegram: ${telegram || 'Не указан'}
-Категория: ${category}
-Приоритет: ${priority}
-Тема: ${subject}
-Сообщение: ${message}
-  `;
-  
-  // Отправляем в Telegram администратору
-  bot.telegram.sendMessage(process.env.ADMIN_TG_ID, ticketInfo)
-    .catch(err => console.error('Ошибка отправки в TG:', err));
-  
-  res.json({ success: true, message: 'Тикет успешно создан! Наши специалисты свяжутся с вами в ближайшее время.' });
 });
 
 // Запуск
