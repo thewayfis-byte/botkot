@@ -861,6 +861,109 @@ app.get('/logout', (req, res) => {
   res.redirect('/login');
 });
 
+// API для получения статистики сайта
+app.get('/api/stats', (req, res) => {
+  // Получаем статистику за всё время
+  const totalStats = {
+    orders: db.prepare('SELECT COUNT(*) as c FROM orders').get().c,
+    openChats: db.prepare('SELECT COUNT(*) as c FROM orders WHERE support_status = ?').get('open').c,
+    keys: db.prepare('SELECT COUNT(*) as c FROM key_pool WHERE is_used = 0').get().c,
+    totalRevenue: db.prepare(`
+      SELECT COALESCE(SUM(p.price), 0) as total 
+      FROM orders o
+      JOIN products p ON o.product_id = p.id
+      WHERE o.status = 'paid'
+    `).get().total
+  };
+
+  // Получаем статистику за сегодня
+  const today = new Date().toISOString().split('T')[0];
+  const todayStats = {
+    orders: db.prepare('SELECT COUNT(*) as c FROM orders WHERE DATE(created_at) = ?').get(today).c,
+    revenue: db.prepare(`
+      SELECT COALESCE(SUM(p.price), 0) as total 
+      FROM orders o
+      JOIN products p ON o.product_id = p.id
+      WHERE o.status = 'paid' AND DATE(o.created_at) = ?
+    `).get(today).total
+  };
+
+  // Получаем статистику за месяц
+  const monthAgo = new Date();
+  monthAgo.setMonth(monthAgo.getMonth() - 1);
+  const monthAgoStr = monthAgo.toISOString().split('T')[0];
+  const monthStats = {
+    orders: db.prepare('SELECT COUNT(*) as c FROM orders WHERE DATE(created_at) >= ?').get(monthAgoStr).c,
+    revenue: db.prepare(`
+      SELECT COALESCE(SUM(p.price), 0) as total 
+      FROM orders o
+      JOIN products p ON o.product_id = p.id
+      WHERE o.status = 'paid' AND DATE(o.created_at) >= ?
+    `).get(monthAgoStr).total
+  };
+
+  // Получаем количество активных пользователей
+  const activeUsers = db.prepare(`
+    SELECT COUNT(DISTINCT user_id) as c 
+    FROM orders 
+    WHERE created_at >= date('now', '-30 days')
+  `).get().c;
+
+  // Рассчитываем процент успешных заказов
+  const totalOrders = db.prepare('SELECT COUNT(*) as c FROM orders').get().c;
+  const paidOrders = db.prepare('SELECT COUNT(*) as c FROM orders WHERE status = ?').get('paid').c;
+  const successRate = totalOrders > 0 ? Math.round((paidOrders / totalOrders) * 100) : 0;
+
+  res.json({
+    totalOrders: totalStats.orders,
+    totalRevenue: totalStats.totalRevenue,
+    todayRevenue: todayStats.revenue,
+    monthRevenue: monthStats.revenue,
+    activeUsers: activeUsers,
+    availableKeys: totalStats.keys,
+    openChats: totalStats.openChats,
+    successRate: successRate
+  });
+});
+
+// API для получения списка продуктов
+app.get('/api/products', (req, res) => {
+  const products = db.prepare(`
+    SELECT p.*, 
+           COUNT(k.id) as available_keys 
+    FROM products p
+    LEFT JOIN key_pool k ON p.id = k.product_id AND k.is_used = 0
+    WHERE p.is_enabled = 1
+    GROUP BY p.id
+  `).all();
+  
+  res.json(products);
+});
+
+// API для создания тикета из веб-сайта
+app.post('/api/ticket', express.json(), (req, res) => {
+  const { name, email, message } = req.body;
+  
+  if (!name || !email || !message) {
+    return res.status(400).json({ error: 'Все поля обязательны для заполнения' });
+  }
+  
+  // Здесь можно добавить сохранение тикета в базу данных
+  // Пока просто отправляем уведомление в Telegram
+  
+  const bot = app.locals.bot;
+  if (bot) {
+    bot.telegram.sendMessage(
+      process.env.ADMIN_TG_ID, 
+      `🆘 Новый тикет с сайта!\n\nИмя: ${name}\nEmail: ${email}\nСообщение: ${message}`
+    ).catch(err => {
+      console.error('Ошибка отправки тикета в Telegram:', err);
+    });
+  }
+  
+  res.json({ success: true, message: 'Ваш тикет отправлен в поддержку. Администратор свяжется с вами в ближайшее время.' });
+});
+
 // Запуск
 bot.launch({ dropPendingUpdates: true }).catch(err => {
   console.log('⚠️ Бот не запущен (неправильный токен или тестовый режим)');
