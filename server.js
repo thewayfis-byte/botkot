@@ -43,7 +43,34 @@ io.on('connection', (socket) => {
 });
 
 // ======= TELEGRAM БОТ =======
+
+// Главное меню
+function mainMenu() {
+  return Markup.keyboard([
+    ['🔑 Ключи', '💳 Подписки'],
+    ['💰 Пополнение Steam', '👤 Профиль'],
+    ['💼 Кошелек', '🆘 Помощь']
+  ]).resize();
+}
+
+// Меню навигации
+function backMenu() {
+  return Markup.keyboard([
+    ['В главное меню']
+  ]).resize();
+}
+
 bot.start((ctx) => {
+  ctx.reply('👋 Привет! Добро пожаловать в Wayfis!\n\nВыберите интересующий вас раздел:', mainMenu());
+});
+
+// Обработка команды /menu
+bot.command('menu', (ctx) => {
+  ctx.reply('📋 Главное меню:', mainMenu());
+});
+
+// Обработка нажатий на кнопки главного меню
+bot.hears('🔑 Ключи', (ctx) => {
   const products = models.getActiveProducts();
   if (products.length === 0) return ctx.reply('🛒 Товары скоро появятся!');
 
@@ -51,6 +78,223 @@ bot.start((ctx) => {
     Markup.button.callback(`${p.name} — ${p.price} ₽`, `buy_${p.id}`)
   );
   ctx.reply('🔑 Выберите лицензию:', Markup.inlineKeyboard(buttons));
+});
+
+bot.hears('💳 Подписки', (ctx) => {
+  ctx.reply('💳 Раздел подписок\n\nЗдесь вы можете приобрести подписку на наши услуги. В данный момент раздел в разработке.', backMenu());
+});
+
+bot.hears('💰 Пополнение Steam', (ctx) => {
+  ctx.reply('Введите сумму для пополнения Steam кошелька (минимальная сумма 100 ₽):', backMenu());
+  // Устанавливаем состояние для ожидания суммы
+  ctx.session = ctx.session || {};
+  ctx.session.waitingForSteamAmount = true;
+});
+
+bot.hears('👤 Профиль', (ctx) => {
+  const user = models.getUserById(ctx.from.id);
+  const userBalance = models.getUserBalance(ctx.from.id);
+  ctx.reply(`👤 Ваш профиль:\n\nID: ${ctx.from.id}\nИмя: ${ctx.from.first_name || 'Не указано'}\nБаланс: ${userBalance} ₽`, backMenu());
+});
+
+bot.hears('💼 Кошелек', (ctx) => {
+  const userBalance = models.getUserBalance(ctx.from.id);
+  ctx.reply(`💼 Ваш кошелек:\n\nБаланс: ${userBalance} ₽\n\nДля пополнения кошелька нажмите на кнопку ниже:`, 
+    Markup.keyboard([
+      ['Пополнить кошелек', 'Списать с кошелька'],
+      ['В главное меню']
+    ]).resize()
+  );
+});
+
+bot.hears('Пополнить кошелек', (ctx) => {
+  ctx.reply('Введите сумму для пополнения кошелька:', backMenu());
+  // Устанавливаем состояние для ожидания суммы
+  ctx.session = ctx.session || {};
+  ctx.session.waitingForWalletAmount = true;
+});
+
+bot.hears('Списать с кошелька', (ctx) => {
+  ctx.reply('Введите сумму для списания с кошелька:', backMenu());
+  // Устанавливаем состояние для ожидания суммы
+  ctx.session = ctx.session || {};
+  ctx.session.waitingForWithdrawAmount = true;
+});
+
+bot.hears('🆘 Помощь', (ctx) => {
+  ctx.reply('Напишите ваш вопрос в поддержку:', backMenu());
+  // Устанавливаем состояние для ожидания сообщения в поддержку
+  ctx.session = ctx.session || {};
+  ctx.session.waitingForSupportMessage = true;
+});
+
+// Обработка возврата в главное меню
+bot.hears('В главное меню', (ctx) => {
+  ctx.reply('📋 Главное меню:', mainMenu());
+});
+
+// Обработка ввода суммы для пополнения Steam
+bot.on('text', async (ctx) => {
+  const text = ctx.message.text;
+  ctx.session = ctx.session || {};
+  
+  // Проверяем, ожидаем ли мы сумму для пополнения Steam
+  if (ctx.session.waitingForSteamAmount) {
+    const amount = parseInt(text);
+    if (isNaN(amount) || amount < 100) {
+      ctx.reply('❌ Неверная сумма. Минимальная сумма 100 ₽');
+      ctx.session.waitingForSteamAmount = false;
+      return;
+    }
+    
+    const commission = amount * 0.07; // 7% комиссии
+    const totalAmount = amount + commission;
+    
+    try {
+      const payment = await createPayment(
+        totalAmount,
+        `Пополнение Steam на ${amount} ₽ (комиссия 7%)`,
+        { userId: String(ctx.from.id), type: 'steam_replenishment' }
+      );
+      
+      ctx.reply(
+        `💳 Пополнение Steam на ${amount} ₽\nКомиссия: ${commission.toFixed(2)} ₽\nИтого к оплате: ${totalAmount.toFixed(2)} ₽`,
+        Markup.inlineKeyboard([
+          [Markup.button.url('Оплатить', payment.confirmation.confirmation_url)],
+          [Markup.button.callback('🔄 Проверить оплату', `check_steam_${payment.id}_${amount}`)]
+        ])
+      );
+      
+      ctx.session.waitingForSteamAmount = false;
+    } catch (err) {
+      console.error('PAYMENT ERROR:', err);
+      ctx.reply('Ошибка платежа. Попробуйте позже.');
+      ctx.session.waitingForSteamAmount = false;
+    }
+  }
+  // Проверяем, ожидаем ли мы сумму для пополнения кошелька
+  else if (ctx.session.waitingForWalletAmount) {
+    const amount = parseInt(text);
+    if (isNaN(amount) || amount < 100) {
+      ctx.reply('❌ Неверная сумма. Минимальная сумма 100 ₽');
+      ctx.session.waitingForWalletAmount = false;
+      return;
+    }
+    
+    try {
+      const payment = await createPayment(
+        amount,
+        `Пополнение кошелька на ${amount} ₽`,
+        { userId: String(ctx.from.id), type: 'wallet_replenishment' }
+      );
+      
+      ctx.reply(
+        `💳 Пополнение кошелька на ${amount} ₽`,
+        Markup.inlineKeyboard([
+          [Markup.button.url('Оплатить', payment.confirmation.confirmation_url)],
+          [Markup.button.callback('🔄 Проверить оплату', `check_wallet_${payment.id}_${amount}`)]
+        ])
+      );
+      
+      ctx.session.waitingForWalletAmount = false;
+    } catch (err) {
+      console.error('PAYMENT ERROR:', err);
+      ctx.reply('Ошибка платежа. Попробуйте позже.');
+      ctx.session.waitingForWalletAmount = false;
+    }
+  }
+  // Проверяем, ожидаем ли мы сумму для списания с кошелька
+  else if (ctx.session.waitingForWithdrawAmount) {
+    const amount = parseInt(text);
+    const userBalance = models.getUserBalance(ctx.from.id);
+    
+    if (isNaN(amount) || amount <= 0) {
+      ctx.reply('❌ Неверная сумма.');
+      ctx.session.waitingForWithdrawAmount = false;
+      return;
+    }
+    
+    if (amount > userBalance) {
+      ctx.reply('❌ Недостаточно средств на кошельке.');
+      ctx.session.waitingForWithdrawAmount = false;
+      return;
+    }
+    
+    // Списание средств с кошелька
+    models.updateUserBalance(ctx.from.id, userBalance - amount);
+    ctx.reply(`✅ Списание ${amount} ₽ с кошелька успешно выполнено.\nТекущий баланс: ${userBalance - amount} ₽`, backMenu());
+    ctx.session.waitingForWithdrawAmount = false;
+  }
+  // Проверяем, ожидаем ли мы сообщение в поддержку
+  else if (ctx.session.waitingForSupportMessage) {
+    // Отправляем сообщение в поддержку (например, админу)
+    ctx.telegram.sendMessage(
+      process.env.ADMIN_TG_ID,
+      `🆘 Новый запрос в поддержку!\nПользователь: ${ctx.from.first_name} (@${ctx.from.username || 'не указан'})\nID: ${ctx.from.id}\n\nСообщение: ${text}`
+    );
+    
+    ctx.reply('✅ Ваше сообщение отправлено в поддержку. Ожидайте ответа.', backMenu());
+    ctx.session.waitingForSupportMessage = false;
+  }
+  // Обработка сообщений от пользователя в чате поддержки (оставляем существующую логику)
+  else {
+    const order = db.prepare(`
+      SELECT * FROM orders
+      WHERE user_id = ? AND support_status = 'open'
+    `).get(ctx.from.id);
+
+    if (!order) return;
+
+    models.saveMessage(order.id, 'user', ctx.message.text);
+
+    // Отправляем событие в админку
+    const io = app.locals.io;
+    io.to(`chat-${order.id}`).emit('new-message', {
+      sender: 'user',
+      text: ctx.message.text,
+      time: new Date().toLocaleTimeString()
+    });
+
+    await ctx.reply('✅ Сообщение отправлено админу!');
+  }
+});
+
+bot.action(/check_steam_(.+)_(\d+)/, async (ctx) => {
+  const paymentId = ctx.match[1];
+  const amount = parseInt(ctx.match[2]);
+  
+  try {
+    const status = await checkPaymentStatus(paymentId);
+    if (['succeeded', 'waiting_for_capture'].includes(status)) {
+      // Пополнение Steam успешно
+      ctx.editMessageText(`✅ Пополнение Steam на ${amount} ₽ успешно выполнено!`);
+    } else {
+      ctx.answerCbQuery('Платёж не завершён. Попробуйте позже.');
+    }
+  } catch (err) {
+    console.error('CHECK ERROR:', err);
+    ctx.answerCbQuery('Ошибка проверки. Обратитесь в поддержку.');
+  }
+});
+
+bot.action(/check_wallet_(.+)_(\d+)/, async (ctx) => {
+  const paymentId = ctx.match[1];
+  const amount = parseInt(ctx.match[2]);
+  
+  try {
+    const status = await checkPaymentStatus(paymentId);
+    if (['succeeded', 'waiting_for_capture'].includes(status)) {
+      // Пополнение кошелька успешно
+      const userBalance = models.getUserBalance(ctx.from.id);
+      models.updateUserBalance(ctx.from.id, userBalance + amount);
+      ctx.editMessageText(`✅ Кошелек пополнен на ${amount} ₽!\nТекущий баланс: ${userBalance + amount} ₽`);
+    } else {
+      ctx.answerCbQuery('Платёж не завершён. Попробуйте позже.');
+    }
+  } catch (err) {
+    console.error('CHECK ERROR:', err);
+    ctx.answerCbQuery('Ошибка проверки. Обратитесь в поддержку.');
+  }
 });
 
 bot.action(/buy_(\d+)/, async (ctx) => {
@@ -182,6 +426,37 @@ bot.on('text', async (ctx) => {
   await ctx.reply('✅ Сообщение отправлено админу!');
 });
 
+// Обработка вебхуков от ЮKassa
+app.post('/yookassa-webhook', express.json(), async (req, res) => {
+  try {
+    const event = req.body;
+    
+    if (event.event === 'payment.succeeded') {
+      const payment = event.object;
+      const metadata = payment.metadata;
+      
+      // Проверяем тип платежа
+      if (metadata.type === 'wallet_replenishment') {
+        // Пополнение кошелька
+        const userId = parseInt(metadata.userId);
+        const amount = Math.round(parseFloat(payment.amount.value));
+        const currentBalance = models.getUserBalance(userId);
+        models.updateUserBalance(userId, currentBalance + amount);
+      } 
+      else if (metadata.type === 'steam_replenishment') {
+        // Пополнение Steam - в реальной системе тут была бы интеграция с Steam API
+        // Пока просто логируем успешное пополнение
+        console.log(`Пополнение Steam для пользователя ${metadata.userId} на сумму ${payment.amount.value} ₽`);
+      }
+    }
+    
+    res.status(200).send('OK');
+  } catch (error) {
+    console.error('Webhook error:', error);
+    res.status(500).send('Error');
+  }
+});
+
 
 app.get('/', (req, res) => {
   res.redirect('/login');
@@ -240,7 +515,8 @@ function requireAuth(req, res, next) {
   res.redirect('/login');
 }
 
-app.get('/dashboard', requireAuth, (req, res) => {
+// API endpoint для получения статистики (публичный)
+app.get('/api/stats', (req, res) => {
   // Получаем статистику за всё время
   const totalStats = {
     orders: db.prepare('SELECT COUNT(*) as c FROM orders').get().c,
@@ -251,7 +527,8 @@ app.get('/dashboard', requireAuth, (req, res) => {
       FROM orders o
       JOIN products p ON o.product_id = p.id
       WHERE o.status = 'paid'
-    `).get().total
+    `).get().total,
+    userCount: db.prepare('SELECT COUNT(*) as c FROM users').get().c
   };
 
   // Получаем статистику за сегодня
@@ -280,6 +557,102 @@ app.get('/dashboard', requireAuth, (req, res) => {
     `).get(monthAgoStr).total
   };
 
+  // Рассчитываем процент успешных заказов
+  const allOrders = db.prepare('SELECT COUNT(*) as c FROM orders').get().c;
+  const paidOrders = db.prepare('SELECT COUNT(*) as c FROM orders WHERE status = ?').get('paid').c;
+  const successRate = allOrders > 0 ? Math.round((paidOrders / allOrders) * 100) : 0;
+
+  res.json({
+    totalOrders: totalStats.orders,
+    totalRevenue: totalStats.totalRevenue,
+    todayRevenue: todayStats.revenue,
+    monthRevenue: monthStats.revenue,
+    activeUsers: totalStats.userCount,
+    availableKeys: totalStats.keys,
+    openChats: totalStats.openChats,
+    successRate: successRate
+  });
+});
+
+// API endpoint для получения статистики (для админки)
+app.get('/api/admin-stats', requireAuth, (req, res) => {
+  // Получаем статистику за всё время
+  const totalStats = {
+    orders: db.prepare('SELECT COUNT(*) as c FROM orders').get().c,
+    openChats: db.prepare('SELECT COUNT(*) as c FROM orders WHERE support_status = ?').get('open').c,
+    keys: db.prepare('SELECT COUNT(*) as c FROM key_pool WHERE is_used = 0').get().c,
+    totalRevenue: db.prepare(`
+      SELECT COALESCE(SUM(p.price), 0) as total 
+      FROM orders o
+      JOIN products p ON o.product_id = p.id
+      WHERE o.status = 'paid'
+    `).get().total,
+    userCount: db.prepare('SELECT COUNT(*) as c FROM users').get().c
+  };
+
+  // Получаем статистику за сегодня
+  const today = new Date().toISOString().split('T')[0];
+  const todayStats = {
+    orders: db.prepare('SELECT COUNT(*) as c FROM orders WHERE DATE(created_at) = ?').get(today).c,
+    revenue: db.prepare(`
+      SELECT COALESCE(SUM(p.price), 0) as total 
+      FROM orders o
+      JOIN products p ON o.product_id = p.id
+      WHERE o.status = 'paid' AND DATE(o.created_at) = ?
+    `).get(today).total
+  };
+
+  // Получаем статистику за месяц
+  const monthAgo = new Date();
+  monthAgo.setMonth(monthAgo.getMonth() - 1);
+  const monthAgoStr = monthAgo.toISOString().split('T')[0];
+  const monthStats = {
+    orders: db.prepare('SELECT COUNT(*) as c FROM orders WHERE DATE(created_at) >= ?').get(monthAgoStr).c,
+    revenue: db.prepare(`
+      SELECT COALESCE(SUM(p.price), 0) as total 
+      FROM orders o
+      JOIN products p ON o.product_id = p.id
+      WHERE o.status = 'paid' AND DATE(o.created_at) >= ?
+    `).get(monthAgoStr).total
+  };
+
+  res.json({
+    total: totalStats,
+    today: todayStats,
+    month: monthStats
+  });
+});
+
+// API endpoint для получения продуктов
+app.get('/api/products', (req, res) => {
+  const products = models.getActiveProducts();
+  res.json(products);
+});
+
+// API endpoint для отправки тикета в поддержку
+app.post('/api/ticket', express.json(), async (req, res) => {
+  try {
+    const { name, email, message } = req.body;
+    
+    // Проверяем обязательные поля
+    if (!name || !email || !message) {
+      return res.status(400).json({ error: 'Все поля обязательны для заполнения' });
+    }
+    
+    // Отправляем сообщение в Telegram администратору
+    await bot.telegram.sendMessage(
+      process.env.ADMIN_TG_ID,
+      `🎫 Новый тикет в поддержку!\n\nИмя: ${name}\nEmail: ${email}\n\nСообщение: ${message}`
+    );
+    
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Ошибка отправки тикета:', error);
+    res.status(500).json({ error: 'Ошибка отправки тикета' });
+  }
+});
+
+app.get('/dashboard', requireAuth, (req, res) => {
   res.send(`
     <!DOCTYPE html>
     <html>
@@ -294,6 +667,7 @@ app.get('/dashboard', requireAuth, (req, res) => {
         .sidebar { min-height: 100vh; }
         .main-content { padding: 2rem 0; }
         .stat-period { background-color: #f8f9fa; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1rem; }
+        #statsChart { height: 300px; }
       </style>
     </head>
     <body>
@@ -337,29 +711,30 @@ app.get('/dashboard', requireAuth, (req, res) => {
               <div class="col-xl-3 col-md-6 mb-4">
                 <div class="stat-period">
                   <h5>Сегодня</h5>
-                  <p>Заказов: <strong>${todayStats.orders}</strong></p>
-                  <p>Доход: <strong>${todayStats.revenue} ₽</strong></p>
+                  <p>Заказов: <strong id="todayOrders">0</strong></p>
+                  <p>Доход: <strong id="todayRevenue">0</strong> ₽</p>
                 </div>
               </div>
               <div class="col-xl-3 col-md-6 mb-4">
                 <div class="stat-period">
                   <h5>Месяц</h5>
-                  <p>Заказов: <strong>${monthStats.orders}</strong></p>
-                  <p>Доход: <strong>${monthStats.revenue} ₽</strong></p>
+                  <p>Заказов: <strong id="monthOrders">0</strong></p>
+                  <p>Доход: <strong id="monthRevenue">0</strong> ₽</p>
                 </div>
               </div>
               <div class="col-xl-3 col-md-6 mb-4">
                 <div class="stat-period">
                   <h5>Всё время</h5>
-                  <p>Заказов: <strong>${totalStats.orders}</strong></p>
-                  <p>Доход: <strong>${totalStats.totalRevenue} ₽</strong></p>
+                  <p>Заказов: <strong id="totalOrders">0</strong></p>
+                  <p>Доход: <strong id="totalRevenue">0</strong> ₽</p>
                 </div>
               </div>
               <div class="col-xl-3 col-md-6 mb-4">
                 <div class="stat-period">
                   <h5>Прочее</h5>
-                  <p>Открытых чатов: <strong>${totalStats.openChats}</strong></p>
-                  <p>Свободных ключей: <strong>${totalStats.keys}</strong></p>
+                  <p>Пользователей: <strong id="userCount">0</strong></p>
+                  <p>Открытых чатов: <strong id="openChats">0</strong></p>
+                  <p>Свободных ключей: <strong id="freeKeys">0</strong></p>
                 </div>
               </div>
             </div>
@@ -372,7 +747,7 @@ app.get('/dashboard', requireAuth, (req, res) => {
                       <div class="col mr-2">
                         <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
                           Заказов всего</div>
-                        <div class="h5 mb-0 font-weight-bold text-gray-800">${totalStats.orders}</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800" id="totalOrdersCard">0</div>
                       </div>
                       <div class="col-auto">
                         <i class="fas fa-shopping-cart fa-2x text-gray-300"></i>
@@ -388,11 +763,11 @@ app.get('/dashboard', requireAuth, (req, res) => {
                     <div class="row no-gutters align-items-center">
                       <div class="col mr-2">
                         <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
-                          Открытых чатов</div>
-                        <div class="h5 mb-0 font-weight-bold text-gray-800">${totalStats.openChats}</div>
+                          Пользователей</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800" id="userCountCard">0</div>
                       </div>
                       <div class="col-auto">
-                        <i class="fas fa-comments fa-2x text-gray-300"></i>
+                        <i class="fas fa-users fa-2x text-gray-300"></i>
                       </div>
                     </div>
                   </div>
@@ -406,12 +781,25 @@ app.get('/dashboard', requireAuth, (req, res) => {
                       <div class="col mr-2">
                         <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
                           Свободных ключей</div>
-                        <div class="h5 mb-0 font-weight-bold text-gray-800">${totalStats.keys}</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800" id="freeKeysCard">0</div>
                       </div>
                       <div class="col-auto">
                         <i class="fas fa-key fa-2x text-gray-300"></i>
                       </div>
                     </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col-12">
+                <div class="card shadow mb-4">
+                  <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">📊 График доходов</h6>
+                  </div>
+                  <div class="card-body">
+                    <canvas id="revenueChart"></canvas>
                   </div>
                 </div>
               </div>
@@ -439,6 +827,61 @@ app.get('/dashboard', requireAuth, (req, res) => {
           </main>
         </div>
       </div>
+
+      <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+      <script>
+        async function loadStats() {
+          try {
+            const response = await fetch('/api/admin-stats');
+            const data = await response.json();
+            
+            // Обновляем статистику
+            document.getElementById('todayOrders').textContent = data.today.orders;
+            document.getElementById('todayRevenue').textContent = data.today.revenue;
+            document.getElementById('monthOrders').textContent = data.month.orders;
+            document.getElementById('monthRevenue').textContent = data.month.revenue;
+            document.getElementById('totalOrders').textContent = data.total.orders;
+            document.getElementById('totalRevenue').textContent = data.total.totalRevenue;
+            document.getElementById('userCount').textContent = data.total.userCount;
+            document.getElementById('openChats').textContent = data.total.openChats;
+            document.getElementById('freeKeys').textContent = data.total.keys;
+            
+            document.getElementById('totalOrdersCard').textContent = data.total.orders;
+            document.getElementById('userCountCard').textContent = data.total.userCount;
+            document.getElementById('freeKeysCard').textContent = data.total.keys;
+            
+            // Создаем график
+            const ctx = document.getElementById('revenueChart').getContext('2d');
+            new Chart(ctx, {
+              type: 'line',
+              data: {
+                labels: ['Сегодня', 'За 7 дней', 'За 30 дней', 'Всё время'],
+                datasets: [{
+                  label: 'Доход (₽)',
+                  data: [data.today.revenue, data.week ? data.week.revenue : 0, data.month.revenue, data.total.totalRevenue],
+                  backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                  borderColor: 'rgba(54, 162, 235, 1)',
+                  borderWidth: 2,
+                  fill: true
+                }]
+              },
+              options: {
+                responsive: true,
+                scales: {
+                  y: {
+                    beginAtZero: true
+                  }
+                }
+              }
+            });
+          } catch (error) {
+            console.error('Ошибка загрузки статистики:', error);
+          }
+        }
+        
+        // Загружаем статистику при загрузке страницы
+        document.addEventListener('DOMContentLoaded', loadStats);
+      </script>
     </body>
     </html>
   `);
