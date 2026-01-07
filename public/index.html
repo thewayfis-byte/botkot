@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wayfis - Онлайн-магазин лицензий</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        .hero-section {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 100px 0;
+            text-align: center;
+        }
+        .stats-section {
+            padding: 80px 0;
+            background-color: #f8f9fa;
+        }
+        .stat-card {
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+            transition: transform 0.3s;
+        }
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+        .stat-icon {
+            font-size: 3rem;
+            margin-bottom: 15px;
+            color: #667eea;
+        }
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #333;
+        }
+        .stat-label {
+            font-size: 1.1rem;
+            color: #666;
+        }
+        .features-section {
+            padding: 80px 0;
+        }
+        .feature-card {
+            text-align: center;
+            padding: 30px;
+            margin-bottom: 30px;
+        }
+        .feature-icon {
+            font-size: 3rem;
+            color: #667eea;
+            margin-bottom: 20px;
+        }
+        .footer {
+            background-color: #333;
+            color: white;
+            padding: 40px 0;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <!-- Hero Section -->
+    <section class="hero-section">
+        <div class="container">
+            <h1 class="display-4 fw-bold mb-4">Добро пожаловать в Wayfis</h1>
+            <p class="lead mb-4">Онлайн-магазин лицензий и цифровых продуктов</p>
+            <a href="#stats" class="btn btn-light btn-lg me-3">Узнать больше</a>
+            <a href="https://t.me/wayfis_bot" class="btn btn-outline-light btn-lg" target="_blank">
+                <i class="fab fa-telegram"></i> Перейти в бот
+            </a>
+        </div>
+    </section>
+
+    <!-- Stats Section -->
+    <section id="stats" class="stats-section">
+        <div class="container">
+            <div class="text-center mb-5">
+                <h2 class="display-5 fw-bold mb-3">Статистика магазина</h2>
+                <p class="lead text-muted">Наши достижения и результаты</p>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-3 col-sm-6">
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-shopping-cart"></i>
+                        </div>
+                        <div class="stat-number" id="total-orders">0</div>
+                        <div class="stat-label">Всего заказов</div>
+                    </div>
+                </div>
+                
+                <div class="col-md-3 col-sm-6">
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-ruble-sign"></i>
+                        </div>
+                        <div class="stat-number" id="total-revenue">0 ₽</div>
+                        <div class="stat-label">Доход за всё время</div>
+                    </div>
+                </div>
+                
+                <div class="col-md-3 col-sm-6">
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-calendar-day"></i>
+                        </div>
+                        <div class="stat-number" id="today-revenue">0 ₽</div>
+                        <div class="stat-label">Доход за сутки</div>
+                    </div>
+                </div>
+                
+                <div class="col-md-3 col-sm-6">
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-calendar-week"></i>
+                        </div>
+                        <div class="stat-number" id="month-revenue">0 ₽</div>
+                        <div class="stat-label">Доход за месяц</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row mt-4">
+                <div class="col-md-3 col-sm-6">
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <div class="stat-number" id="active-users">0</div>
+                        <div class="stat-label">Активных пользователей</div>
+                    </div>
+                </div>
+                
+                <div class="col-md-3 col-sm-6">
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-key"></i>
+                        </div>
+                        <div class="stat-number" id="available-keys">0</div>
+                        <div class="stat-label">Доступных ключей</div>
+                    </div>
+                </div>
+                
+                <div class="col-md-3 col-sm-6">
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-comments"></i>
+                        </div>
+                        <div class="stat-number" id="open-chats">0</div>
+                        <div class="stat-label">Открытых чатов</div>
+                    </div>
+                </div>
+                
+                <div class="col-md-3 col-sm-6">
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-percentage"></i>
+                        </div>
+                        <div class="stat-number" id="success-rate">0%</div>
+                        <div class="stat-label">Успешных заказов</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="features-section">
+        <div class="container">
+            <div class="text-center mb-5">
+                <h2 class="display-5 fw-bold mb-3">Наши преимущества</h2>
+                <p class="lead text-muted">Почему выбирают нас</p>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-shield-alt"></i>
+                        </div>
+                        <h4>Безопасность</h4>
+                        <p>Все лицензии оригинальные, без риска блокировки. Мы гарантируем безопасность ваших покупок.</p>
+                    </div>
+                </div>
+                
+                <div class="col-md-4">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-bolt"></i>
+                        </div>
+                        <h4>Мгновенная доставка</h4>
+                        <p>После оплаты вы получаете ключ мгновенно. Никаких ожиданий и задержек.</p>
+                    </div>
+                </div>
+                
+                <div class="col-md-4">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-headset"></i>
+                        </div>
+                        <h4>Поддержка 24/7</h4>
+                        <p>Наша команда всегда готова помочь вам с любыми вопросами в любое время.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Products Section -->
+    <section class="py-5 bg-light">
+        <div class="container">
+            <div class="text-center mb-5">
+                <h2 class="display-5 fw-bold mb-3">Популярные продукты</h2>
+                <p class="lead text-muted">Широкий выбор лицензий и подписок</p>
+            </div>
+            
+            <div class="row" id="products-list">
+                <div class="col-md-4 mb-4">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title">Minecraft Java</h5>
+                            <p class="card-text">Оригинальная лицензия для игры Minecraft Java Edition</p>
+                            <p class="text-primary fw-bold fs-4">1999 ₽</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-4">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title">Steam Wallet</h5>
+                            <p class="card-text">Пополнение баланса Steam с комиссией всего 7%</p>
+                            <p class="text-primary fw-bold fs-4">От 100 ₽</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-4">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title">Подписки</h5>
+                            <p class="card-text">Различные подписки на игры и сервисы</p>
+                            <p class="text-primary fw-bold fs-4">От 299 ₽</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Contact Section -->
+    <section id="contact" class="py-5">
+        <div class="container">
+            <div class="text-center mb-5">
+                <h2 class="display-5 fw-bold mb-3">Связаться с нами</h2>
+                <p class="lead text-muted">Если у вас есть вопросы, отправьте нам тикет</p>
+            </div>
+            
+            <div class="row justify-content-center">
+                <div class="col-md-8">
+                    <div class="card">
+                        <div class="card-body p-5">
+                            <form id="ticket-form">
+                                <div class="mb-3">
+                                    <label for="name" class="form-label">Ваше имя</label>
+                                    <input type="text" class="form-control" id="name" name="name" required>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="email" class="form-label">Email</label>
+                                    <input type="email" class="form-control" id="email" name="email" required>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="message" class="form-label">Сообщение</label>
+                                    <textarea class="form-control" id="message" name="message" rows="5" required></textarea>
+                                </div>
+                                
+                                <div class="d-grid">
+                                    <button type="submit" class="btn btn-primary btn-lg">Отправить тикет</button>
+                                </div>
+                            </form>
+                            
+                            <div id="ticket-success" class="alert alert-success mt-3 d-none" role="alert">
+                                Ваш тикет отправлен в поддержку. Администратор свяжется с вами в ближайшее время.
+                            </div>
+                            
+                            <div id="ticket-error" class="alert alert-danger mt-3 d-none" role="alert">
+                                Ошибка отправки тикета. Пожалуйста, проверьте данные и попробуйте снова.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6">
+                    <h5>Wayfis</h5>
+                    <p>Онлайн-магазин лицензий и цифровых продуктов</p>
+                </div>
+                <div class="col-md-3">
+                    <h5>Ссылки</h5>
+                    <ul class="list-unstyled">
+                        <li><a href="#" class="text-light">О нас</a></li>
+                        <li><a href="#contact" class="text-light">Контакты</a></li>
+                        <li><a href="https://t.me/wayfis_bot" class="text-light" target="_blank">Telegram бот</a></li>
+                    </ul>
+                </div>
+                <div class="col-md-3">
+                    <h5>Поддержка</h5>
+                    <ul class="list-unstyled">
+                        <li><a href="#contact" class="text-light">Помощь</a></li>
+                        <li><a href="#" class="text-light">FAQ</a></li>
+                        <li><a href="#" class="text-light">Политика конфиденциальности</a></li>
+                    </ul>
+                </div>
+            </div>
+            <hr class="my-4">
+            <p class="mb-0">&copy; 2024 Wayfis. Все права защищены.</p>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Загрузка статистики с сервера
+        async function loadStats() {
+            try {
+                const response = await fetch('/api/stats');
+                const stats = await response.json();
+                
+                document.getElementById('total-orders').textContent = stats.totalOrders.toLocaleString();
+                document.getElementById('total-revenue').textContent = `${stats.totalRevenue.toLocaleString()} ₽`;
+                document.getElementById('today-revenue').textContent = `${stats.todayRevenue.toLocaleString()} ₽`;
+                document.getElementById('month-revenue').textContent = `${stats.monthRevenue.toLocaleString()} ₽`;
+                document.getElementById('active-users').textContent = stats.activeUsers.toLocaleString();
+                document.getElementById('available-keys').textContent = stats.availableKeys.toLocaleString();
+                document.getElementById('open-chats').textContent = stats.openChats.toLocaleString();
+                document.getElementById('success-rate').textContent = `${stats.successRate}%`;
+            } catch (error) {
+                console.error('Ошибка загрузки статистики:', error);
+            }
+        }
+
+        // Загрузка продуктов
+        async function loadProducts() {
+            try {
+                const response = await fetch('/api/products');
+                const products = await response.json();
+                
+                const productsList = document.getElementById('products-list');
+                productsList.innerHTML = '';
+                
+                if (products.length === 0) {
+                    productsList.innerHTML = '<div class="col-12"><p class="text-center text-muted">В данный момент нет доступных продуктов</p></div>';
+                    return;
+                }
+                
+                products.forEach(product => {
+                    const productCard = document.createElement('div');
+                    productCard.className = 'col-md-4 mb-4';
+                    productCard.innerHTML = `
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <h5 class="card-title">${product.name}</h5>
+                                <p class="card-text">${product.description || 'Описание отсутствует'}</p>
+                                <p class="text-primary fw-bold fs-4">${product.price} ₽</p>
+                                <p class="text-muted">Доступно: ${product.available_keys} шт.</p>
+                            </div>
+                        </div>
+                    `;
+                    productsList.appendChild(productCard);
+                });
+            } catch (error) {
+                console.error('Ошибка загрузки продуктов:', error);
+            }
+        }
+
+        // Отправка тикета
+        async function submitTicket(event) {
+            event.preventDefault();
+            
+            const form = document.getElementById('ticket-form');
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData);
+            
+            const successDiv = document.getElementById('ticket-success');
+            const errorDiv = document.getElementById('ticket-error');
+            
+            try {
+                const response = await fetch('/api/ticket', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    successDiv.classList.remove('d-none');
+                    errorDiv.classList.add('d-none');
+                    form.reset();
+                    
+                    // Скрываем сообщение об успехе через 5 секунд
+                    setTimeout(() => {
+                        successDiv.classList.add('d-none');
+                    }, 5000);
+                } else {
+                    errorDiv.classList.remove('d-none');
+                    successDiv.classList.add('d-none');
+                    errorDiv.textContent = result.error || 'Ошибка отправки тикета';
+                }
+            } catch (error) {
+                console.error('Ошибка отправки тикета:', error);
+                errorDiv.classList.remove('d-none');
+                successDiv.classList.add('d-none');
+                errorDiv.textContent = 'Ошибка соединения с сервером';
+            }
+        }
+
+        // Инициализация страницы
+        document.addEventListener('DOMContentLoaded', function() {
+            loadStats();
+            loadProducts();
+            
+            // Добавляем обработчик формы тикета
+            const ticketForm = document.getElementById('ticket-form');
+            if (ticketForm) {
+                ticketForm.addEventListener('submit', submitTicket);
+            }
+        });
+    </script>
+</body>
+</html>
