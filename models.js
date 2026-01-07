@@ -71,6 +71,27 @@ function getUserOrders(userId) {
     .all(userId);
 }
 
+// Получить пользователя по ID
+function getUserById(userId) {
+  return db.prepare('SELECT * FROM users WHERE id = ?').get(userId);
+}
+
+// Получить баланс пользователя
+function getUserBalance(userId) {
+  const user = getUserById(userId);
+  if (!user) {
+    // Если пользователя нет в базе, создаем его с нулевым балансом
+    db.prepare('INSERT INTO users (id, balance) VALUES (?, 0)').run(userId);
+    return 0;
+  }
+  return user.balance || 0;
+}
+
+// Обновить баланс пользователя
+function updateUserBalance(userId, newBalance) {
+  db.prepare('INSERT OR REPLACE INTO users (id, balance) VALUES (?, ?)').run(userId, newBalance);
+}
+
 // ЭКСПОРТ ВСЕХ ФУНКЦИЙ
 module.exports = {
   getActiveProducts,
@@ -85,5 +106,8 @@ module.exports = {
   closeSupportChat,
   saveMessage,
   getChatHistory,
-  getUserOrders
+  getUserOrders,
+  getUserById,
+  getUserBalance,
+  updateUserBalance
 };
